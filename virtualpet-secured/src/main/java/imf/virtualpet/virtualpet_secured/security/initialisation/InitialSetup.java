@@ -1,7 +1,7 @@
 package imf.virtualpet.virtualpet_secured.security.initialisation;
 
+import imf.virtualpet.virtualpet_secured.security.dto.UserRegistrationDTO;
 import imf.virtualpet.virtualpet_secured.security.entity.Role;
-import imf.virtualpet.virtualpet_secured.security.entity.User;
 import imf.virtualpet.virtualpet_secured.security.service.UserService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 public class InitialSetup {
     private static final String USER_COLLECTION = "user";
     private static final String VIRTUALPET_COLLECTION = "virtualpet";
+    private UserRegistrationDTO userRegistrationDTO;
 
     @Bean
     public ApplicationRunner setupAdminUser(UserService userService, PasswordEncoder passwordEncoder, ReactiveMongoTemplate reactiveMongoTemplate) {
@@ -21,7 +22,7 @@ public class InitialSetup {
                 .then(
                         userService.findByUsername("admin")
                                 .switchIfEmpty(
-                                        userService.registerUser(new User("admin", passwordEncoder.encode("123456789"), Role.ADMIN))
+                                        userService.registerUser(new UserRegistrationDTO("admin", "123456789", Role.ADMIN))
                                 )
                 ).subscribe();
     }
