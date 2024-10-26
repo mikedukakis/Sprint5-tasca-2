@@ -1,9 +1,6 @@
 package imf.virtualpet.virtualpet_secured.security.controller;
 
-import imf.virtualpet.virtualpet_secured.security.dto.LoginDTO;
-import imf.virtualpet.virtualpet_secured.security.dto.PasswordUpdateDTO;
-import imf.virtualpet.virtualpet_secured.security.entity.User;
-import imf.virtualpet.virtualpet_secured.security.dto.UserDTO;
+import imf.virtualpet.virtualpet_secured.security.dto.*;
 import imf.virtualpet.virtualpet_secured.security.service.UserService;
 import lombok.Data;
 import org.springframework.data.mongodb.repository.Update;
@@ -18,19 +15,21 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/new")
-    public Mono<User> registerUser(@RequestBody UserDTO userDTO) {
-        User user = new User(userDTO.getUsername(), userDTO.getPassword());
-        return userService.registerUser(user);
+    public Mono<UserResponseDTO> registerUser(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        return userService.registerUser(userRegistrationDTO)
+                .map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getRole()));
     }
 
     @GetMapping("/user/find")
-    public Mono<User> findByUsername(@RequestParam String userName) {
-        return userService.findByUsername(userName);
+    public Mono<UserResponseDTO> findByUsername(@RequestParam String userName) {
+        return userService.findByUsername(userName)
+                .map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getRole()));
     }
 
     @GetMapping("/user/login")
-    public Mono<User> loginUser(@RequestBody LoginDTO loginDTO) {
-        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword());
+    public Mono<UserResponseDTO> loginUser(@RequestBody LoginDTO loginDTO) {
+        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword())
+                .map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getRole()));
     }
 
     @DeleteMapping("/user/delete/{userId}")
@@ -39,13 +38,15 @@ public class AuthController {
     }
 
     @GetMapping("user/users")
-    public Flux<User> findAllUsers() {
-        return userService.findAllUsers();
+    public Flux<UserResponseDTO> findAllUsers() {
+        return userService.findAllUsers()
+                .map(user -> new UserResponseDTO(user.getId(),user.getUsername(), user.getRole()));
     }
 
     @Update("user/update-password")
-    public Mono<User> updatePassword(@RequestBody PasswordUpdateDTO passwordUpdateDTO) {
-        return userService.updatePassword(passwordUpdateDTO.getUsername(), passwordUpdateDTO.getNewPassword());
+    public Mono<UserResponseDTO> updatePassword(@RequestBody PasswordUpdateDTO passwordUpdateDTO) {
+        return userService.updatePassword(passwordUpdateDTO)
+                .map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getRole()));
     }
 
 }
