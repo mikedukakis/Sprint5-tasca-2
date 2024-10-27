@@ -120,7 +120,7 @@ public class VirtualPetController {
             @ApiResponse(responseCode = "401", description = "Unauthorised. User not authorised to delete pet."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @DeleteMapping("/delete/{ºpetId}")
+    @DeleteMapping("/delete/{petId}")
     public Mono<ResponseEntity<Void>> deletePet(@PathVariable String petId) {
         return virtualPetService.deletePet(petId)
                 .then(Mono.just(ResponseEntity.noContent().<Void>build()))

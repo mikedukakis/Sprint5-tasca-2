@@ -4,7 +4,6 @@ import imf.virtualpet.virtualpet_secured.domain.dto.VirtualPetCreationDTO;
 import imf.virtualpet.virtualpet_secured.domain.entity.VirtualPet;
 import imf.virtualpet.virtualpet_secured.domain.repository.VirtualPetRepository;
 import imf.virtualpet.virtualpet_secured.domain.util.VirtualPetMapper;
-import imf.virtualpet.virtualpet_secured.security.entity.User;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;

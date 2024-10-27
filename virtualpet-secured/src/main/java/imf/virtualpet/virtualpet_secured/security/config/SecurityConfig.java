@@ -58,7 +58,7 @@ public class SecurityConfig {
             );
 
             return Jwts.builder()
-                    .setClaims(claims)
+                    .claims(claims)
                     .signWith(secretKey)
                     .compact();
         }).subscribeOn(Schedulers.boundedElastic());

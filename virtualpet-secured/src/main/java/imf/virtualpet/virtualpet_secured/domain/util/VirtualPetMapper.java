@@ -22,8 +22,8 @@ public class VirtualPetMapper {
                 virtualPetResponseDTO.getPetType(),
                 virtualPetResponseDTO.getColour()
         );
-        virtualPet.setHungry(virtualPetResponseDTO.isHungry());
-        virtualPet.setHappy(virtualPetResponseDTO.isHappy());
+        virtualPet.setHungry(virtualPetResponseDTO.getIsHungry());
+        virtualPet.setHappy(virtualPetResponseDTO.getIsHappy());
         return virtualPet;
     }
 
