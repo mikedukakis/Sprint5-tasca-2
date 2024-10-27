@@ -9,6 +9,8 @@ public class UserRegistrationDTO {
     private String password;
     private Role role;
 
+    public UserRegistrationDTO() {}
+
     public UserRegistrationDTO(String username, String password, Role role) {
         this.username = username;
         this.password = password;
