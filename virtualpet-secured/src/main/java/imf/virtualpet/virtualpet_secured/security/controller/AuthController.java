@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 public class AuthController {
     private final UserService userService;
 
-    @Operation(summary = "Create new user", description = "Registers a new user.")
+    @Operation(summary = "Creates new user", description = "Registers a new user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created. New user created successfully."),
             @ApiResponse(responseCode = "202", description = "Accepted. User details received for registration, not processed yet."),
@@ -41,12 +41,12 @@ public class AuthController {
 
     @Operation(summary = "Find a user", description = "Looks for a user by name.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ok. The user has been found."),
+            @ApiResponse(responseCode = "200", description = "Ok. The user has been found and is returned."),
             @ApiResponse(responseCode = "400", description = "Bad request. Invalid request, see body for more details."),
             @ApiResponse(responseCode = "401", description = "Unauthorised. Not authorised to find users."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @GetMapping("/user/find")
+    @GetMapping("/find/{username}")
     public Mono<ResponseEntity<UserResponseDTO>> findByUsername(@RequestParam String userName) {
         return userService.findByUsername(userName)
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
@@ -55,14 +55,14 @@ public class AuthController {
                         .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
     }
 
-    @Operation(summary = "User log-in", description = "Logs user in the application.")
+    @Operation(summary = "User login", description = "Logs user in the application.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ok. The user has been logged in."),
             @ApiResponse(responseCode = "400", description = "Bad request. Invalid request, see body for more details."),
             @ApiResponse(responseCode = "401", description = "Unauthorised. User not authorised to log in."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @GetMapping("/user/login")
+    @PostMapping("/login")
     public Mono<ResponseEntity<UserResponseDTO>> loginUser(@RequestBody LoginDTO loginDTO) {
         return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword())
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
@@ -78,7 +78,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Unauthorised. User not authorised to delete user."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @DeleteMapping("/user/delete/{userId}")
+    @DeleteMapping("/delete/{userId}")
     public Mono<ResponseEntity<Void>> deleteUser(@PathVariable String userId) {
         return userService.deleteUser(userId)
                 .then(Mono.just(ResponseEntity.noContent().<Void>build()))
@@ -92,7 +92,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Unauthorised. User not authorised to retrieve list."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @GetMapping("user/users")
+    @GetMapping("/users")
     public Flux<ResponseEntity<UserResponseDTO>> findAllUsers() {
         return userService.findAllUsers()
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
@@ -110,7 +110,7 @@ public class AuthController {
             @ApiResponse(responseCode = "409", description = "Conflict. The update could not be completed (possibly another client has modified the password)"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @Update("user/update-password")
+    @PutMapping("user/update-password")
     public Mono<ResponseEntity<UserResponseDTO>> updatePassword(@RequestBody PasswordUpdateDTO passwordUpdateDTO) {
         return userService.updatePassword(passwordUpdateDTO)
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
