@@ -3,6 +3,7 @@ package imf.virtualpet.virtualpet_secured.security.initialisation;
 import imf.virtualpet.virtualpet_secured.security.dto.UserRegistrationDTO;
 import imf.virtualpet.virtualpet_secured.security.entity.Role;
 import imf.virtualpet.virtualpet_secured.security.service.UserService;
+import lombok.Data;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import reactor.core.publisher.Mono;
 
+@Data
 @Configuration
 public class InitialSetup {
     private static final String USER_COLLECTION = "user";
