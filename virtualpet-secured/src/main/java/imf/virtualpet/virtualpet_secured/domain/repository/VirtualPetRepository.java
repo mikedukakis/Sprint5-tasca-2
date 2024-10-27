@@ -5,5 +5,4 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-interface VirtualPetRepository extends ReactiveMongoRepository<VirtualPet, String> {
-}
+public interface VirtualPetRepository extends ReactiveMongoRepository<VirtualPet, String> {}
