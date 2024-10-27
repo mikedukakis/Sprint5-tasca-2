@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    private final UserRegistrationDTO userRegistrationDTO;
     private final PasswordEncoder passwordEncoder;
 
     public Mono<User> registerUser(UserRegistrationDTO userRegistrationDTO) {
