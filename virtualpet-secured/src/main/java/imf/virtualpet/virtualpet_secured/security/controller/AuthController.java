@@ -1,9 +1,7 @@
 package imf.virtualpet.virtualpet_secured.security.controller;
 
-import imf.virtualpet.virtualpet_secured.security.dto.LoginDTO;
-import imf.virtualpet.virtualpet_secured.security.dto.PasswordUpdateDTO;
-import imf.virtualpet.virtualpet_secured.security.entity.User;
-import imf.virtualpet.virtualpet_secured.security.dto.UserDTO;
+import imf.virtualpet.virtualpet_secured.security.dto.*;
+import imf.virtualpet.virtualpet_secured.security.entity.Role;
 import imf.virtualpet.virtualpet_secured.security.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import org.springframework.data.mongodb.repository.Update;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,9 +31,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @PostMapping("/new")
-    public Mono<User> registerUser(@RequestBody UserDTO userDTO) {
-        User user = new User(userDTO.getUsername(), userDTO.getPassword());
-        return userService.registerUser(user);
+    public Mono<ResponseEntity<UserResponseDTO>> registerUser(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        return userService.registerUser(userRegistrationDTO)
+                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .onErrorResume(error -> Mono.just(
+                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new UserResponseDTO("Error", "Registration failed", Role.USER))));
     }
 
     @Operation(summary = "Find a user", description = "Looks for a user by name.")
@@ -44,8 +47,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @GetMapping("/user/find")
-    public Mono<User> findByUsername(@RequestParam String userName) {
-        return userService.findByUsername(userName);
+    public Mono<ResponseEntity<UserResponseDTO>> findByUsername(@RequestParam String userName) {
+        return userService.findByUsername(userName)
+                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
     }
 
     @Operation(summary = "User log-in", description = "Logs user in the application.")
@@ -56,8 +63,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @GetMapping("/user/login")
-    public Mono<User> loginUser(@RequestBody LoginDTO loginDTO) {
-        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword());
+    public Mono<ResponseEntity<UserResponseDTO>> loginUser(@RequestBody LoginDTO loginDTO) {
+        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword())
+                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
     }
 
     @Operation(summary = "Delete user", description = "Deletes a user using their ID to locate them.")
@@ -68,8 +79,10 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @DeleteMapping("/user/delete/{userId}")
-    public Mono<Void> deleteUser(@PathVariable String userId) {
-        return userService.deleteUser(userId);
+    public Mono<ResponseEntity<Void>> deleteUser(@PathVariable String userId) {
+        return userService.deleteUser(userId)
+                .then(Mono.just(ResponseEntity.noContent().<Void>build()))
+                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
     }
 
     @Operation(summary = "Find all users", description = "List all users registered.")
@@ -80,8 +93,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @GetMapping("user/users")
-    public Flux<User> findAllUsers() {
-        return userService.findAllUsers();
+    public Flux<ResponseEntity<UserResponseDTO>> findAllUsers() {
+        return userService.findAllUsers()
+                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .onErrorResume(error -> Flux.just(
+                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
     }
 
     @Operation(summary = "Update password", description = "Changes the password of a user.")
@@ -94,8 +111,12 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
     @Update("user/update-password")
-    public Mono<User> updatePassword(@RequestBody PasswordUpdateDTO passwordUpdateDTO) {
-        return userService.updatePassword(passwordUpdateDTO.getUsername(), passwordUpdateDTO.getNewPassword());
+    public Mono<ResponseEntity<UserResponseDTO>> updatePassword(@RequestBody PasswordUpdateDTO passwordUpdateDTO) {
+        return userService.updatePassword(passwordUpdateDTO)
+                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .onErrorResume(error -> Mono.just(
+                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new UserResponseDTO("Error", "Password update failed", Role.USER))));
     }
 
 }

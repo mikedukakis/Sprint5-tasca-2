@@ -1,5 +1,8 @@
 package imf.virtualpet.virtualpet_secured.security.service;
 
+import imf.virtualpet.virtualpet_secured.security.dto.PasswordUpdateDTO;
+import imf.virtualpet.virtualpet_secured.security.dto.UserRegistrationDTO;
+import imf.virtualpet.virtualpet_secured.security.entity.Role;
 import imf.virtualpet.virtualpet_secured.security.entity.User;
 import imf.virtualpet.virtualpet_secured.security.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,19 +17,23 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Mono<User> registerUser(User user) {
-        if (user.getId() == null) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
+    public Mono<User> registerUser(UserRegistrationDTO userRegistrationDTO) {
+        Role role = userRegistrationDTO.getRole() != null ? userRegistrationDTO.getRole() : Role.USER;
+        User user = new User(
+                userRegistrationDTO.getUsername(),
+                passwordEncoder.encode(userRegistrationDTO.getPassword()),
+                role
+        );
+
         return userRepository.save(user);
     }
 
-    public Mono<User> findByUsername(String userName) {
-        return userRepository.findByUsername(userName);
+    public Mono<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
-    public Mono<User> loginUser(String userName, String password) {
-        return userRepository.findByUsername(userName)
+    public Mono<User> loginUser(String username, String password) {
+        return userRepository.findByUsername(username)
                 .filter(user -> passwordEncoder.matches(password, user.getPassword()));
     }
 
@@ -38,10 +45,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public Mono<User> updatePassword(String username, String newPassword) {
-        return userRepository.findByUsername(username)
+    public Mono<User> updatePassword(PasswordUpdateDTO passwordUpdateDTO) {
+        return userRepository.findByUsername(passwordUpdateDTO.getUsername())
                 .flatMap(user -> {
-                    user.setPassword(passwordEncoder.encode(newPassword));
+                    user.setPassword(passwordEncoder.encode(passwordUpdateDTO.getNewPassword()));
                     return userRepository.save(user);
                 });
     }
