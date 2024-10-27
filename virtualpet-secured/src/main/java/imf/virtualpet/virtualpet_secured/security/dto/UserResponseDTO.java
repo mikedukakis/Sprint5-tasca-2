@@ -18,5 +18,6 @@ public class UserResponseDTO {
         this.id = id;
         this.username = username;
         this.role = role;
+
     }
 }
