@@ -6,11 +6,13 @@ import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @Data
 @RestController
+@RequestMapping("virtualpet/pet")
 public class VirtualPetController {
     private final VirtualPetService virtualPetService;
 
