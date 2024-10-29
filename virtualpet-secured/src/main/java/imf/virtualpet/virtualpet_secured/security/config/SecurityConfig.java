@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.POST, "/virtualpet/user/signup", "/virtualpet/user/login").permitAll()
                         .pathMatchers("/login.html", "/signup.html", "/styles.css", "/public/**").permitAll()
+                        .pathMatchers("/virtualpet/pet/**").authenticated()
                         .anyExchange().authenticated()
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
