@@ -8,6 +8,7 @@ public class VirtualPetMapper {
     public static VirtualPet fromCreationDTOToEntity(VirtualPetCreationDTO virtualPetCreationDTO) {
         VirtualPet virtualPet = new VirtualPet(
                 virtualPetCreationDTO.getName(),
+                virtualPetCreationDTO.getOwnerUsername(),
                 virtualPetCreationDTO.getPetType(),
                 virtualPetCreationDTO.getColour()
         );
@@ -19,6 +20,7 @@ public class VirtualPetMapper {
     public static VirtualPet fromResponseDTOToEntity(VirtualPetResponseDTO virtualPetResponseDTO) {
         VirtualPet virtualPet = new VirtualPet(
                 virtualPetResponseDTO.getName(),
+                virtualPetResponseDTO.getOwnerUsername(),
                 virtualPetResponseDTO.getPetType(),
                 virtualPetResponseDTO.getColour()
         );

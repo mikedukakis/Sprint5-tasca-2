@@ -14,6 +14,8 @@ public class VirtualPet {
     private String id;
     @Field("Name")
     private String name;
+    @Field("Owner")
+    private String ownerUsername;
     @Field("PetType")
     private PetType petType;
     @Field("Colour")
@@ -23,8 +25,9 @@ public class VirtualPet {
     @Field("Happiness")
     private boolean isHappy;
 
-    public VirtualPet(String name, PetType petType, String colour) {
+    public VirtualPet(String name, String ownerUsername, PetType petType, String colour) {
         this.name = name;
+        this.ownerUsername = ownerUsername;
         this.petType = petType;
         this.colour =  colour;
         this.isHungry = getRandomBool();
