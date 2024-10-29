@@ -1,67 +1,87 @@
 package imf.virtualpet.virtualpet_secured.security.config;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
+import imf.virtualpet.virtualpet_secured.security.jwt.JwtUtil;
+import imf.virtualpet.virtualpet_secured.security.service.CustomUserDetailsService;
+import lombok.Data;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
+import org.springframework.security.web.server.authorization.HttpStatusServerAccessDeniedHandler;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
-import java.security.Key;
-import java.time.Instant;
-import java.util.Map;
+import java.net.URI;
 
-@Configuration
+@Data
 @EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+@Configuration
 public class SecurityConfig {
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60;
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtUtil jwtUtil;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        http
-                .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec
-                        .pathMatchers("/public/**").permitAll()
+        return http
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers(HttpMethod.POST, "/virtualpet/user/signup", "/virtualpet/user/login").permitAll()
+                        .pathMatchers("/login.html", "/signup.html", "/styles.css", "/public/**").permitAll()
                         .anyExchange().authenticated()
                 )
-                .oauth2Login(oauth2LoginSpec -> oauth2LoginSpec
-                        .authenticationSuccessHandler((exchange, authentication) -> Mono.empty())
-                        .authenticationFailureHandler((exchange, exception) -> {
-                            ServerWebExchange serverWebExchange = exchange.getExchange();
-                            return serverWebExchange.getResponse()
-                                    .writeWith(Mono.just(serverWebExchange.getResponse()
-                                            .bufferFactory()
-                                            .wrap(("Authentication failed: " + exception.getMessage()).getBytes())));
-                        })
-                );
-        return http.build();
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint(new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler(new HttpStatusServerAccessDeniedHandler(HttpStatus.FORBIDDEN))
+                )
+                .addFilterBefore(redirectFilter(), SecurityWebFiltersOrder.AUTHENTICATION)
+                .addFilterAt(jwtAuthenticationFilter(), SecurityWebFiltersOrder.AUTHENTICATION)
+                .build();
     }
 
-    private Mono<String> generateToken(Authentication authentication) {
-        return Mono.fromCallable(() -> {
-            String userId = authentication.getName();
-            Instant now = Instant.now();
-            Instant expiryDate = now.plusMillis(EXPIRATION_TIME);
+    @Bean
+    public WebFilter redirectFilter() {
+        return (exchange, chain) -> {
+            if (exchange.getRequest().getMethod() == HttpMethod.GET) {
+                String path = exchange.getRequest().getURI().getPath();
 
-            Key secretKey = Keys.hmacShaKeyFor(SecretKey.getSecretKey().getBytes());
+                return exchange.getPrincipal()
+                        .flatMap(principal -> chain.filter(exchange)) // Authenticated, proceed as usual
+                        .switchIfEmpty( // Unauthenticated, check for specific paths and redirect
+                                Mono.defer(() -> {
+                                    if (path.equals("/virtualpet/user/login")) {
+                                        exchange.getResponse().setStatusCode(HttpStatus.FOUND);
+                                        exchange.getResponse().getHeaders().setLocation(URI.create("/login.html"));
+                                        return exchange.getResponse().setComplete();
+                                    } else if (path.equals("/virtualpet/user/signup")) {
+                                        exchange.getResponse().setStatusCode(HttpStatus.FOUND);
+                                        exchange.getResponse().getHeaders().setLocation(URI.create("/signup.html"));
+                                        return exchange.getResponse().setComplete();
+                                    }
+                                    return chain.filter(exchange);
+                                })
+                        );
+            }
+            return chain.filter(exchange);
+        };
+    }
 
-            Map<String, Object> claims = Map.of(
-                    "sub", userId,
-                    "iat", now.getEpochSecond(),
-                    "exp", expiryDate.getEpochSecond()
-            );
-
-            return Jwts.builder()
-                    .claims(claims)
-                    .signWith(secretKey)
-                    .compact();
-        }).subscribeOn(Schedulers.boundedElastic());
+    private boolean isAuthenticated(ServerWebExchange exchange) {
+        return exchange.getPrincipal().map(principal -> principal instanceof UsernamePasswordAuthenticationToken).blockOptional().orElse(false);
     }
 
     @Bean
@@ -69,4 +89,33 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    private WebFilter jwtAuthenticationFilter() {
+        return (exchange, chain) -> {
+            String path = exchange.getRequest().getPath().toString();
+
+            if (path.equals("/login.html") || path.equals("/signup.html") || path.equals("/styles.css") || path.startsWith("/public/")) {
+                return chain.filter(exchange);
+            }
+
+            String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String username = jwtUtil.extractUsername(token);
+
+                return userDetailsService.findByUsername(username)
+                        .flatMap(userDetails -> {
+                            if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                                        userDetails, null, userDetails.getAuthorities());
+                                SecurityContext context = new SecurityContextImpl(auth);
+                                return chain.filter(exchange)
+                                        .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)));
+                            } else {
+                                return Mono.error(new RuntimeException("Invalid Token"));
+                            }
+                        });
+            }
+            return chain.filter(exchange);
+        };
+    }
 }
