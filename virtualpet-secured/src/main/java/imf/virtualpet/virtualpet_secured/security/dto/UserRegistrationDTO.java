@@ -7,7 +7,7 @@ import lombok.Data;
 public class UserRegistrationDTO {
     private String username;
     private String password;
-    private Role role;
+    private Role role = Role.ROLE_USER;
 
     public UserRegistrationDTO() {}
 
