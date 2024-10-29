@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Pets</title>
+</head>
+<body>
+<h1>Your Pets</h1>
+<div id="pets-container"></div>
+
+<script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        alert("You are not logged in!");
+        window.location.href = "/login.html";
+    } else {
+        fetch("/virtualpet/pet/mypets", {
+            method: "GET",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Unauthorized or error fetching pets.");
+            }
+            return response.json();
+        })
+        .then(pets => {
+            const container = document.getElementById("pets-container");
+            pets.forEach(pet => {
+                const petElement = document.createElement("div");
+                petElement.innerHTML = `<h2>${pet.name}</h2><p>Type: ${pet.type}</p>`;
+                container.appendChild(petElement);
+            });
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Could not load pets. Please try again.");
+        });
+    }
+</script>
+</body>
+</html>
