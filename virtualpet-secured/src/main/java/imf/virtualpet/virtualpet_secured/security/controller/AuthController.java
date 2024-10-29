@@ -2,6 +2,7 @@ package imf.virtualpet.virtualpet_secured.security.controller;
 
 import imf.virtualpet.virtualpet_secured.security.dto.*;
 import imf.virtualpet.virtualpet_secured.security.entity.Role;
+import imf.virtualpet.virtualpet_secured.security.service.CustomUserDetailsService;
 import imf.virtualpet.virtualpet_secured.security.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Data
 @RestController
@@ -20,6 +23,8 @@ import reactor.core.publisher.Mono;
 @Tag(name = "User", description = "Operations for secure user management")
 public class AuthController {
     private final UserService userService;
+    private final CustomUserDetailsService customUserDetailsService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Operation(summary = "Creates new user", description = "Registers a new user.")
     @ApiResponses(value = {
@@ -29,13 +34,29 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Unauthorised. Not authorised to create user."),
             @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
     })
-    @PostMapping("/new")
+    @PostMapping("/signup")
     public Mono<ResponseEntity<UserResponseDTO>> registerUser(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        logger.info("Received sign-up request for username: {}", userRegistrationDTO.getUsername());
+
         return userService.registerUser(userRegistrationDTO)
-                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
-                .onErrorResume(error -> Mono.just(
-                        ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(new UserResponseDTO("Error", "Registration failed", Role.USER))));
+                .map(user -> ResponseEntity.status(HttpStatus.CREATED).body(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
+                .onErrorResume(error -> {
+                    logger.error("Error during sign-up: {}", error.getMessage());
+                    return Mono.just(
+                            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                    .body(new UserResponseDTO("Error", "Registration failed", Role.ROLE_USER))
+                    );
+                });
+    }
+
+    @PostMapping("/login")
+    public Mono<ResponseEntity<String>> loginUser(@RequestBody LoginDTO loginDTO) {
+        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword())
+                .map(jwt -> ResponseEntity.ok("Bearer " + jwt))
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build())
+                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Database error occurred")
+                ));
     }
 
     @Operation(summary = "Find a user", description = "Looks for a user by name.")
@@ -51,23 +72,7 @@ public class AuthController {
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
                 .defaultIfEmpty(ResponseEntity.notFound().build())
                 .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
-    }
-
-    @Operation(summary = "User login", description = "Logs user in the application.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Ok. The user has been logged in."),
-            @ApiResponse(responseCode = "400", description = "Bad request. Invalid request, see body for more details."),
-            @ApiResponse(responseCode = "401", description = "Unauthorised. User not authorised to log in."),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error. Unexpected error in server connection.")
-    })
-    @PostMapping("/login")
-    public Mono<ResponseEntity<UserResponseDTO>> loginUser(@RequestBody LoginDTO loginDTO) {
-        return userService.loginUser(loginDTO.getUsername(), loginDTO.getPassword())
-                .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
-                .defaultIfEmpty(ResponseEntity.notFound().build())
-                .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
+                        .body(new UserResponseDTO("Error", "Database error occurred", Role.ROLE_USER))));
     }
 
     @Operation(summary = "Delete user", description = "Deletes a user using their ID to locate them.")
@@ -97,7 +102,7 @@ public class AuthController {
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
                 .onErrorResume(error -> Flux.just(
                         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(new UserResponseDTO("Error", "Database error occurred", Role.USER))));
+                                .body(new UserResponseDTO("Error", "Database error occurred", Role.ROLE_USER))));
     }
 
     @Operation(summary = "Update password", description = "Changes the password of a user.")
@@ -115,7 +120,7 @@ public class AuthController {
                 .map(user -> ResponseEntity.ok(new UserResponseDTO(user.getId(), user.getUsername(), user.getRole())))
                 .onErrorResume(error -> Mono.just(
                         ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(new UserResponseDTO("Error", "Password update failed", Role.USER))));
+                                .body(new UserResponseDTO("Error", "Password update failed", Role.ROLE_USER))));
     }
 
 }
