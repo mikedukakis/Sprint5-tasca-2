@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Pet - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="login-container">
+    <h2>Virtual Pet - Login</h2>
+    <form id="login-form">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+
+        <button type="submit">Login</button>
+        <p id="login-error" style="color:red; display:none;">Invalid username or password.</p>
+    </form>
+</div>
+<script>
+    document.getElementById("login-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        fetch("/virtualpet/user/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.text(); // assuming the JWT token is returned as plain text
+            } else {
+                document.getElementById("login-error").style.display = "block";
+                throw new Error("Login failed");
+            }
+        })
+        .then(token => {
+            // Save the token in local storage
+            localStorage.setItem("token", token);
+
+            // Redirect to the virtual pet home page
+            window.location.href = "/virtualpet/user/home";
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    });
+</script>
+
+</body>
+</html>

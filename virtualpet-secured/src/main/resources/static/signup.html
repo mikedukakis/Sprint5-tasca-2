@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Pet - Sign Up</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="signup-container">
+    <h2>Virtual Pet - Sign Up</h2>
+    <form id="signup-form">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" name="confirm-password" required>
+
+        <button type="submit">Sign Up</button>
+        <p id="signup-error" style="color:red; display:none;">Error: Please check the form fields.</p>
+    </form>
+</div>
+
+<script>
+    document.getElementById("signup-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirm-password").value;
+
+        if (password !== confirmPassword) {
+            document.getElementById("signup-error").textContent = "Passwords do not match.";
+            document.getElementById("signup-error").style.display = "block";
+            return;
+        }
+
+        fetch("/virtualpet/user/signup", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = "/login.html";
+            } else {
+                document.getElementById("signup-error").textContent = "Sign-up failed. Try again.";
+                document.getElementById("signup-error").style.display = "block";
+                return response.json().then(error => console.error("Error details:", error));
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+        console.log("Sending signup data:", JSON.stringify({ username, password }));
+    });
+</script>
+
+</body>
+</html>
