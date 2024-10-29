@@ -1,6 +1,6 @@
 package imf.virtualpet.virtualpet_secured.security.entity;
 
 public enum Role {
-    USER,
-    ADMIN
+    ROLE_USER,
+    ROLE_ADMIN
 }
